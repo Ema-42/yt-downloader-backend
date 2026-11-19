@@ -29,7 +29,10 @@ cp .env.example .env
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `CORS_ORIGINS` | `["http://localhost:3000"]` | Orígenes permitidos |
+| `CORS_ORIGINS` | `http://localhost:3005,http://127.0.0.1:3005` | Orígenes permitidos, separados por coma |
+| `CORS_ORIGIN_REGEX` | _(vacío)_ | Regex opcional (previews de Vercel) |
+| `COOKIES_FILE` | `cookies.txt` | cookies.txt exportado del navegador |
+| `COOKIES_FROM_BROWSER` | _(vacío)_ | Solo local: `chrome`, `firefox`, `edge`, `brave` |
 | `DOWNLOADS_DIR` | `downloads` | Carpeta de archivos temporales |
 | `MAX_FILE_AGE_HOURS` | `2` | Horas antes de borrar archivos viejos |
 | `MAX_FILESIZE_MB` | `500` | Límite de tamaño de descarga |

@@ -1,4 +1,6 @@
 import re
+import shutil
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -26,20 +28,40 @@ def validate_youtube_url(url: str) -> bool:
     return bool(_YT_URL_RE.match(url.strip()))
 
 
+def _writable_cookies_path() -> str | None:
+    # yt-dlp reescribe el cookiefile al cerrar; los Secret Files de Render son solo lectura
+    src = Path(settings.cookies_file)
+    if not src.is_file():
+        return None
+    dst = Path(tempfile.gettempdir()) / "yt_cookies.txt"
+    try:
+        shutil.copyfile(src, dst)
+        return str(dst)
+    except OSError:
+        return str(src)
+
+
+_COOKIES_PATH = _writable_cookies_path()
+
+
 def _base_opts() -> dict:
     opts: dict = {
         "quiet": True,
         "no_warnings": True,
         "extractor_args": _EXTRACTOR_ARGS,
     }
-    # Si existe cookies.txt lo usa como refuerzo adicional
-    cookies_path = Path(settings.cookies_file)
-    if cookies_path.exists():
-        opts["cookiefile"] = str(cookies_path)
+    if _COOKIES_PATH:
+        opts["cookiefile"] = _COOKIES_PATH
     return opts
 
 
 _AUTH_ERRORS = ("Sign in", "age", "region", "not available", "private", "members only")
+
+
+def _needs_browser_fallback(e: Exception) -> bool:
+    if not settings.cookies_from_browser:
+        return False
+    return any(kw.lower() in str(e).lower() for kw in _AUTH_ERRORS)
 
 
 def _extract_info(url: str) -> dict:
@@ -47,8 +69,8 @@ def _extract_info(url: str) -> dict:
         with yt_dlp.YoutubeDL({**_base_opts(), "extract_flat": False}) as ydl:
             return ydl.extract_info(url, download=False)
     except yt_dlp.utils.DownloadError as e:
-        # Si falla por restricción de edad/región, reintenta con cookies del browser
-        if any(kw.lower() in str(e).lower() for kw in _AUTH_ERRORS):
+        # Si falla por restricción de edad/región, reintenta con cookies del browser (solo local)
+        if _needs_browser_fallback(e):
             fallback = {**_base_opts(), "extract_flat": False,
                         "cookiesfrombrowser": (settings.cookies_from_browser,)}
             with yt_dlp.YoutubeDL(fallback) as ydl:
@@ -93,7 +115,7 @@ def _run_download(ydl_opts: dict, url: str) -> None:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except yt_dlp.utils.DownloadError as e:
-        if any(kw.lower() in str(e).lower() for kw in _AUTH_ERRORS):
+        if _needs_browser_fallback(e):
             fallback = {**ydl_opts, "cookiesfrombrowser": (settings.cookies_from_browser,)}
             with yt_dlp.YoutubeDL(fallback) as ydl:
                 ydl.download([url])

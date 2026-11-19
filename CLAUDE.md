@@ -20,11 +20,21 @@ uvicorn app.main:app --reload --port 8000
 
 ## Variables de entorno (.env)
 ```
+CORS_ORIGINS=http://localhost:3005          # separados por coma; en prod, la URL de Vercel
+CORS_ORIGIN_REGEX=                          # opcional, previews de Vercel
 DOWNLOADS_DIR=downloads
 MAX_FILE_AGE_HOURS=2
 MAX_FILESIZE_MB=500
-COOKIES_FROM_BROWSER=chrome
+COOKIES_FILE=cookies.txt                    # en Render: /etc/secrets/cookies.txt
+COOKIES_FROM_BROWSER=chrome                 # solo local; vacío en servidores
 ```
+
+## Deploy en Render
+- `render.yaml` incluido (Blueprint). Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Setear `CORS_ORIGINS` con la URL de Vercel en el dashboard
+- Las IPs de datacenter suelen recibir "Sign in to confirm you're not a bot": subir un `cookies.txt` como **Secret File** (`/etc/secrets/cookies.txt`), idealmente de una cuenta secundaria
+- Plan free: se duerme tras 15 min (primer request tarda ~50 s), disco efímero, jobs en memoria se pierden al reiniciar
+- Mantener 1 solo worker (los jobs viven en memoria del proceso)
 
 ## Estructura de carpetas
 ```
@@ -74,7 +84,8 @@ backend/
 - **Nunca** usar `subprocess` o `shell=True` con la URL del usuario
 - Validar URL con regex antes de pasarla a yt-dlp (`validate_youtube_url`)
 - Errores de yt-dlp → respuestas HTTP claras (400/422), nunca stack traces al cliente
-- CORS abierto a `*` (uso local personal)
+- CORS restringido a `CORS_ORIGINS` (+ `CORS_ORIGIN_REGEX` opcional)
+- `cookies.txt` nunca se commitea (está en `.gitignore`); se copia a un temp escribible al arrancar
 - ffmpeg: siempre usar `imageio_ffmpeg.get_ffmpeg_exe()` como `ffmpeg_location`
 
 ## Actualizar yt-dlp (YouTube cambia seguido)

@@ -73,8 +73,12 @@ def _extract_info(url: str) -> dict:
         if _needs_browser_fallback(e):
             fallback = {**_base_opts(), "extract_flat": False,
                         "cookiesfrombrowser": (settings.cookies_from_browser,)}
-            with yt_dlp.YoutubeDL(fallback) as ydl:
-                return ydl.extract_info(url, download=False)
+            try:
+                with yt_dlp.YoutubeDL(fallback) as ydl:
+                    return ydl.extract_info(url, download=False)
+            except Exception:
+                # Si el navegador no existe, mostrar el error original de YouTube
+                raise e from None
         raise
 
 
@@ -117,8 +121,11 @@ def _run_download(ydl_opts: dict, url: str) -> None:
     except yt_dlp.utils.DownloadError as e:
         if _needs_browser_fallback(e):
             fallback = {**ydl_opts, "cookiesfrombrowser": (settings.cookies_from_browser,)}
-            with yt_dlp.YoutubeDL(fallback) as ydl:
-                ydl.download([url])
+            try:
+                with yt_dlp.YoutubeDL(fallback) as ydl:
+                    ydl.download([url])
+            except Exception:
+                raise e from None
         else:
             raise
 

@@ -16,14 +16,6 @@ _YT_URL_RE = re.compile(
     r"^https?://(www\.)?(youtube\.com/watch\?.*v=[\w-]+|youtu\.be/[\w-]+)"
 )
 
-# Simula el cliente de la app Android de YouTube — evita el anti-bot sin cookies
-_EXTRACTOR_ARGS = {
-    "youtube": {
-        "player_client": ["android", "web"],
-    }
-}
-
-
 def validate_youtube_url(url: str) -> bool:
     return bool(_YT_URL_RE.match(url.strip()))
 
@@ -48,7 +40,8 @@ def _base_opts() -> dict:
     opts: dict = {
         "quiet": True,
         "no_warnings": True,
-        "extractor_args": _EXTRACTOR_ARGS,
+        # YouTube exige resolver desafíos JS (yt-dlp-ejs + Deno o Node) para obtener los formatos
+        "js_runtimes": {"deno": {}, "node": {}},
     }
     if _COOKIES_PATH:
         opts["cookiefile"] = _COOKIES_PATH

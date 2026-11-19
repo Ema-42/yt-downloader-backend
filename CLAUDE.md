@@ -73,12 +73,11 @@ backend/
 - Status flow: `starting → downloading → processing → done | error | cancelled`
 
 ## Bot-detection de YouTube
-- Estrategia principal: `extractor_args: {youtube: {player_client: ['android', 'web']}}`
-  - Simula el cliente Android de YouTube, evita el anti-bot sin cookies
-  - No requiere mantenimiento en condiciones normales
-- Fallback: si el video requiere auth (edad/región/privado), reintenta con `cookiesfrombrowser: (chrome,)`
-  - Requiere que Chrome esté cerrado para acceder a su BD de cookies
-- Opcional: colocar `cookies.txt` exportado desde el browser en la raíz del backend
+- **No forzar `player_client`**: dejar que yt-dlp elija los clientes. Forzar `android,web` limitaba a 360p sin cookies y fallaba con cookies
+- YouTube exige resolver desafíos JS: `yt-dlp-ejs` + runtime JS (`js_runtimes: {deno, node}`; `deno` viene por pip)
+- En servidores (Render) la IP está marcada → hace falta `cookies.txt` (Secret File, `COOKIES_FILE=/etc/secrets/cookies.txt`)
+  - Exportar desde incógnito tras abrir `youtube.com/robots.txt`, luego cerrar la ventana (evita la rotación de cookies)
+- Fallback local opcional: `COOKIES_FROM_BROWSER=chrome` (requiere Chrome cerrado); si falla, se muestra el error original
 
 ## Reglas importantes
 - **Nunca** usar `subprocess` o `shell=True` con la URL del usuario
